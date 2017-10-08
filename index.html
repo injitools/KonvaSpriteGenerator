@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Konva Sprite Generator</title>
+    <script src="https://cdn.rawgit.com/konvajs/konva/1.3.0/konva.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/es6-promise@4/dist/es6-promise.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/es6-promise@4/dist/es6-promise.auto.min.js"></script>
+</head>
+<body>
+<form onsubmit="loadImages();return false;">
+    <label>Select images for join, then grab sprite and coords array</label><br/>
+    <input id="loadFormFiles" type="file" multiple="multiple" name='sprites'/>
+    <button>load</button> <span id="status"></span>
+</form>
+<div id='container'></div>
+<div id="text"></div>
+<script>
+  var nextX = 0;
+  var images = [];
+  var promise = Promise.resolve();
+  var rowCount = 1;
+  var rowMaxHeigh = 0;
+  var y = 0;
+  var input = document.getElementById('loadFormFiles');
+
+  function loadImages() {
+    var row = parseInt(Math.pow(input.files.length, 0.5));
+    for (var i = 0; i < input.files.length; i++) {
+      loadImage(input.files[i], row);
+    }
+    promise.then(function () {
+      var text = '';
+      for (var i in images) {
+        text += JSON.stringify(images[i].coords) + ' //' + images[i].name + '<br />';
+      }
+      document.getElementById('text').innerHTML = text;
+      console.log(images);
+    })
+  }
+
+  function loadImage(file, maxRowCount) {
+    promise = promise.then(function () {
+      return new Promise(function (resolve) {
+        document.getElementById('status').innerHTML = 'loaded: ' + rowCount + ' of ' + input.files.length;
+        if (rowCount++ && rowCount % maxRowCount === 0) {
+          y += rowMaxHeigh;
+          rowMaxHeigh = 0;
+          nextX = 0;
+        }
+        var imageObj = new Image();
+        imageObj.onload = function () {
+          var yoda = new Konva.Image({
+            x: nextX,
+            y: y,
+            image: imageObj,
+            width: imageObj.width,
+            height: imageObj.height
+          });
+          images.push({name: file.name, coords: [nextX, y, imageObj.width, imageObj.height]});
+          nextX += imageObj.width;
+          if (stage.width() < nextX) {
+            stage.setWidth(nextX);
+          }
+          if (stage.height() < y + imageObj.height) {
+            stage.setHeight(y + imageObj.height);
+          }
+          if (rowMaxHeigh < imageObj.height) {
+            rowMaxHeigh = imageObj.height;
+          }
+
+          // add the shape to the layer
+          layer.add(yoda);
+          // add the layer to the stage
+          stage.add(layer);
+          resolve();
+
+        };
+        imageObj.src = URL.createObjectURL(file);
+      });
+    });
+  }
+
+  function readURL(input) {
+
+    if (input.files && input.files[0]) {
+      var reader = new FileReader();
+
+      reader.onload = function (e) {
+        $('#blah').attr('src', e.target.result);
+      }
+
+      reader.readAsDataURL(input.files[0]);
+    }
+  }
+
+  var stage = new Konva.Stage({
+    container: 'container',
+    width: 0,
+    height: 0
+  });
+
+  var layer = new Konva.Layer();
+
+</script>
+</body>
+</html>
